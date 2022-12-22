@@ -1,32 +1,44 @@
-# code-point-at [![Build Status](https://travis-ci.org/sindresorhus/code-point-at.svg?branch=master)](https://travis-ci.org/sindresorhus/code-point-at)
+# currently-unhandled [![Build Status](https://travis-ci.org/jamestalmage/currently-unhandled.svg?branch=master)](https://travis-ci.org/jamestalmage/currently-unhandled) [![Coverage Status](https://coveralls.io/repos/github/jamestalmage/currently-unhandled/badge.svg?branch=master)](https://coveralls.io/github/jamestalmage/currently-unhandled?branch=master)
 
-> ES2015 [`String#codePointAt()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt) [ponyfill](https://ponyfill.com)
+> Track the list of currently unhandled promise rejections.
 
 
 ## Install
 
 ```
-$ npm install --save code-point-at
+$ npm install --save currently-unhandled
 ```
 
 
 ## Usage
 
 ```js
-var codePointAt = require('code-point-at');
+const currentlyUnhandled = require('currently-unhandled')(); // <- note the invocation
 
-codePointAt('🐴');
-//=> 128052
+var fooError = new Error('foo');
+var p = Promise.reject(new Error('foo'));
 
-codePointAt('abc', 2);
-//=> 99
+// on the next tick - unhandled rejected promise is added to the list:
+currentlyUnhandled();
+//=> [{promise: p, reason: fooError}]'
+
+p.catch(() => {});
+
+// on the next tick - handled promise is now removed from the list:
+currentlyUnhandled();
+//=> [];
 ```
 
 ## API
 
-### codePointAt(input, [position])
+### currentlyUnhandled()
 
+Returns an array of objects with `promise` and `reason` properties representing the rejected promises that currently do not have a rejection handler. The list grows and shrinks as unhandledRejections are published, and later handled.
+
+## Browser Support
+
+This module can be bundled with `browserify`. At time of writing, it will work with native Promises in the Chrome browser only. For best cross-browser support, use `bluebird` instead of native Promise support in browsers.
 
 ## License
 
-MIT © [Sindre Sorhus](https://sindresorhus.com)
+MIT © [James Talmage](http://github.com/jamestalmage)
