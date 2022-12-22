@@ -1,25 +1,17 @@
-{
-  "name": "string_decoder",
-  "version": "0.10.31",
-  "description": "The string_decoder module from Node core",
-  "main": "index.js",
-  "dependencies": {},
-  "devDependencies": {
-    "tap": "~0.4.8"
+{ "name": "dicer",
+  "version": "0.2.5",
+  "author": "Brian White <mscdex@mscdex.net>",
+  "description": "A very fast streaming multipart parser for node.js",
+  "main": "./lib/Dicer",
+  "dependencies": {
+    "streamsearch": "0.1.2",
+    "readable-stream": "1.1.x"
   },
   "scripts": {
-    "test": "tap test/simple/*.js"
+    "test": "node test/test.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/rvagg/string_decoder.git"
-  },
-  "homepage": "https://github.com/rvagg/string_decoder",
-  "keywords": [
-    "string",
-    "decoder",
-    "browser",
-    "browserify"
-  ],
-  "license": "MIT"
+  "engines": { "node": ">=0.8.0" },
+  "keywords": [ "parser", "parse", "parsing", "multipart", "form-data", "streaming" ],
+  "licenses": [ { "type": "MIT", "url": "http://github.com/mscdex/dicer/raw/master/LICENSE" } ],
+  "repository" : { "type": "git", "url": "http://github.com/mscdex/dicer.git" }
 }

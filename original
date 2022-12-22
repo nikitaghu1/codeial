@@ -1,32 +1,24 @@
-------WebKitFormBoundaryWLHCs9qmcJJoyjKR
-Content-Disposition: form-data; name="_method"
+User-Agent: foo bar baz
+Content-Type: multipart/form-data; boundary=AaB03x
 
-put
-------WebKitFormBoundaryWLHCs9qmcJJoyjKR
-Content-Disposition: form-data; name="profile[blog]"
+--AaB03x
+Content-Disposition: form-data; name="foo"
 
+bar
+--AaB03x
+Content-Disposition: form-data; name="files"
+Content-Type: multipart/mixed, boundary=BbC04y
 
-------WebKitFormBoundaryWLHCs9qmcJJoyjKR
-Content-Disposition: form-data; name="profile[public_email]"
+--BbC04y
+Content-Disposition: attachment; filename="file.txt"
+Content-Type: text/plain
 
+contents
+--BbC04y
+Content-Disposition: attachment; filename="flowers.jpg"
+Content-Type: image/jpeg
+Content-Transfer-Encoding: binary
 
-------WebKitFormBoundaryWLHCs9qmcJJoyjKR
-Content-Disposition: form-data; name="profile[interests]"
-
-
-------WebKitFormBoundaryWLHCs9qmcJJoyjKR
-Content-Disposition: form-data; name="profile[bio]"
-
-hello
-
-"quote"
-------WebKitFormBoundaryWLHCs9qmcJJoyjKR
-Content-Disposition: form-data; name="media"; filename=""
-Content-Type: application/octet-stream
-
-
-------WebKitFormBoundaryWLHCs9qmcJJoyjKR
-Content-Disposition: form-data; name="commit"
-
-Save
-------WebKitFormBoundaryWLHCs9qmcJJoyjKR--
+contents
+--BbC04y--
+--AaB03x--
