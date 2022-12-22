@@ -1,142 +1,162 @@
-# accepts
+# assert-plus
 
-[![NPM Version][npm-version-image]][npm-url]
-[![NPM Downloads][npm-downloads-image]][npm-url]
-[![Node.js Version][node-version-image]][node-version-url]
-[![Build Status][travis-image]][travis-url]
-[![Test Coverage][coveralls-image]][coveralls-url]
+This library is a super small wrapper over node's assert module that has two
+things: (1) the ability to disable assertions with the environment variable
+NODE\_NDEBUG, and (2) some API wrappers for argument testing.  Like
+`assert.string(myArg, 'myArg')`.  As a simple example, most of my code looks
+like this:
 
-Higher level content negotiation based on [negotiator](https://www.npmjs.com/package/negotiator).
-Extracted from [koa](https://www.npmjs.com/package/koa) for general use.
+```javascript
+    var assert = require('assert-plus');
 
-In addition to negotiator, it allows:
+    function fooAccount(options, callback) {
+        assert.object(options, 'options');
+        assert.number(options.id, 'options.id');
+        assert.bool(options.isManager, 'options.isManager');
+        assert.string(options.name, 'options.name');
+        assert.arrayOfString(options.email, 'options.email');
+        assert.func(callback, 'callback');
 
-- Allows types as an array or arguments list, ie `(['text/html', 'application/json'])`
-  as well as `('text/html', 'application/json')`.
-- Allows type shorthands such as `json`.
-- Returns `false` when no types match
-- Treats non-existent headers as `*`
-
-## Installation
-
-This is a [Node.js](https://nodejs.org/en/) module available through the
-[npm registry](https://www.npmjs.com/). Installation is done using the
-[`npm install` command](https://docs.npmjs.com/getting-started/installing-npm-packages-locally):
-
-```sh
-$ npm install accepts
+        // Do stuff
+        callback(null, {});
+    }
 ```
 
-## API
+# API
 
-<!-- eslint-disable no-unused-vars -->
+All methods that *aren't* part of node's core assert API are simply assumed to
+take an argument, and then a string 'name' that's not a message; `AssertionError`
+will be thrown if the assertion fails with a message like:
 
-```js
-var accepts = require('accepts')
+    AssertionError: foo (string) is required
+    at test (/home/mark/work/foo/foo.js:3:9)
+    at Object.<anonymous> (/home/mark/work/foo/foo.js:15:1)
+    at Module._compile (module.js:446:26)
+    at Object..js (module.js:464:10)
+    at Module.load (module.js:353:31)
+    at Function._load (module.js:311:12)
+    at Array.0 (module.js:484:10)
+    at EventEmitter._tickCallback (node.js:190:38)
+
+from:
+
+```javascript
+    function test(foo) {
+        assert.string(foo, 'foo');
+    }
 ```
 
-### accepts(req)
+There you go.  You can check that arrays are of a homogeneous type with `Arrayof$Type`:
 
-Create a new `Accepts` object for the given `req`.
-
-#### .charset(charsets)
-
-Return the first accepted charset. If nothing in `charsets` is accepted,
-then `false` is returned.
-
-#### .charsets()
-
-Return the charsets that the request accepts, in the order of the client's
-preference (most preferred first).
-
-#### .encoding(encodings)
-
-Return the first accepted encoding. If nothing in `encodings` is accepted,
-then `false` is returned.
-
-#### .encodings()
-
-Return the encodings that the request accepts, in the order of the client's
-preference (most preferred first).
-
-#### .language(languages)
-
-Return the first accepted language. If nothing in `languages` is accepted,
-then `false` is returned.
-
-#### .languages()
-
-Return the languages that the request accepts, in the order of the client's
-preference (most preferred first).
-
-#### .type(types)
-
-Return the first accepted type (and it is returned as the same text as what
-appears in the `types` array). If nothing in `types` is accepted, then `false`
-is returned.
-
-The `types` array can contain full MIME types or file extensions. Any value
-that is not a full MIME types is passed to `require('mime-types').lookup`.
-
-#### .types()
-
-Return the types that the request accepts, in the order of the client's
-preference (most preferred first).
-
-## Examples
-
-### Simple type negotiation
-
-This simple example shows how to use `accepts` to return a different typed
-respond body based on what the client wants to accept. The server lists it's
-preferences in order and will get back the best match between the client and
-server.
-
-```js
-var accepts = require('accepts')
-var http = require('http')
-
-function app (req, res) {
-  var accept = accepts(req)
-
-  // the order of this list is significant; should be server preferred order
-  switch (accept.type(['json', 'html'])) {
-    case 'json':
-      res.setHeader('Content-Type', 'application/json')
-      res.write('{"hello":"world!"}')
-      break
-    case 'html':
-      res.setHeader('Content-Type', 'text/html')
-      res.write('<b>hello, world!</b>')
-      break
-    default:
-      // the fallback is text/plain, so no need to specify it above
-      res.setHeader('Content-Type', 'text/plain')
-      res.write('hello, world!')
-      break
-  }
-
-  res.end()
-}
-
-http.createServer(app).listen(3000)
+```javascript
+    function test(foo) {
+        assert.arrayOfString(foo, 'foo');
+    }
 ```
 
-You can test this out with the cURL program:
-```sh
-curl -I -H'Accept: text/html' http://localhost:3000/
+You can assert IFF an argument is not `undefined` (i.e., an optional arg):
+
+```javascript
+    assert.optionalString(foo, 'foo');
 ```
+
+Lastly, you can opt-out of assertion checking altogether by setting the
+environment variable `NODE_NDEBUG=1`.  This is pseudo-useful if you have
+lots of assertions, and don't want to pay `typeof ()` taxes to v8 in
+production.  Be advised:  The standard functions re-exported from `assert` are
+also disabled in assert-plus if NDEBUG is specified.  Using them directly from
+the `assert` module avoids this behavior.
+
+The complete list of APIs is:
+
+* assert.array
+* assert.bool
+* assert.buffer
+* assert.func
+* assert.number
+* assert.finite
+* assert.object
+* assert.string
+* assert.stream
+* assert.date
+* assert.regexp
+* assert.uuid
+* assert.arrayOfArray
+* assert.arrayOfBool
+* assert.arrayOfBuffer
+* assert.arrayOfFunc
+* assert.arrayOfNumber
+* assert.arrayOfFinite
+* assert.arrayOfObject
+* assert.arrayOfString
+* assert.arrayOfStream
+* assert.arrayOfDate
+* assert.arrayOfRegexp
+* assert.arrayOfUuid
+* assert.optionalArray
+* assert.optionalBool
+* assert.optionalBuffer
+* assert.optionalFunc
+* assert.optionalNumber
+* assert.optionalFinite
+* assert.optionalObject
+* assert.optionalString
+* assert.optionalStream
+* assert.optionalDate
+* assert.optionalRegexp
+* assert.optionalUuid
+* assert.optionalArrayOfArray
+* assert.optionalArrayOfBool
+* assert.optionalArrayOfBuffer
+* assert.optionalArrayOfFunc
+* assert.optionalArrayOfNumber
+* assert.optionalArrayOfFinite
+* assert.optionalArrayOfObject
+* assert.optionalArrayOfString
+* assert.optionalArrayOfStream
+* assert.optionalArrayOfDate
+* assert.optionalArrayOfRegexp
+* assert.optionalArrayOfUuid
+* assert.AssertionError
+* assert.fail
+* assert.ok
+* assert.equal
+* assert.notEqual
+* assert.deepEqual
+* assert.notDeepEqual
+* assert.strictEqual
+* assert.notStrictEqual
+* assert.throws
+* assert.doesNotThrow
+* assert.ifError
+
+# Installation
+
+    npm install assert-plus
 
 ## License
 
-[MIT](LICENSE)
+The MIT License (MIT)
+Copyright (c) 2012 Mark Cavage
 
-[coveralls-image]: https://badgen.net/coveralls/c/github/jshttp/accepts/master
-[coveralls-url]: https://coveralls.io/r/jshttp/accepts?branch=master
-[node-version-image]: https://badgen.net/npm/node/accepts
-[node-version-url]: https://nodejs.org/en/download
-[npm-downloads-image]: https://badgen.net/npm/dm/accepts
-[npm-url]: https://npmjs.org/package/accepts
-[npm-version-image]: https://badgen.net/npm/v/accepts
-[travis-image]: https://badgen.net/travis/jshttp/accepts/master
-[travis-url]: https://travis-ci.org/jshttp/accepts
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## Bugs
+
+See <https://github.com/mcavage/node-assert-plus/issues>.
