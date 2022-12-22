@@ -1,38 +1,26 @@
 {
-  "name": "async",
-  "description": "Higher-order functions and common patterns for asynchronous code",
-  "version": "0.9.2",
-  "main": "lib/async.js",
+  "name": "bson",
+  "description": "A bson parser for node.js and the browser",
   "keywords": [
-    "async",
-    "callback",
-    "utility",
-    "module"
+    "mongodb",
+    "bson",
+    "parser"
   ],
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/caolan/async.git"
-  },
-  "devDependencies": {
-    "nodeunit": ">0.0.0",
-    "uglify-js": "1.2.x",
-    "nodelint": ">0.0.0",
-    "lodash": ">=2.4.1"
-  },
+  "author": "Christian Amor Kvalheim <christkv@gmail.com>",
+  "main": "./dist/bson.js",
+  "license": "Apache-2.0",
   "moduleType": [
-    "amd",
     "globals",
     "node"
   ],
   "ignore": [
     "**/.*",
-    "node_modules",
+    "alternate_parsers",
+    "benchmarks",
     "bower_components",
+    "node_modules",
     "test",
-    "tests"
+    "tools"
   ],
-  "authors": [
-    "Caolan McMahon"
-  ]
+  "version": "4.5.3"
 }

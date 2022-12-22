@@ -1,111 +1,186 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.deprecate = exports.isObjectLike = exports.isDate = exports.haveBuffer = exports.isMap = exports.isRegExp = exports.isBigUInt64Array = exports.isBigInt64Array = exports.isUint8Array = exports.isAnyArrayBuffer = exports.randomBytes = exports.normalizedFunctionString = void 0;
-var buffer_1 = require("buffer");
-var global_1 = require("../utils/global");
-/**
- * Normalizes our expected stringified form of a function across versions of node
- * @param fn - The function to stringify
- */
-function normalizedFunctionString(fn) {
-    return fn.toString().replace('function(', 'function (');
+var jsencoding = require('../deps/encoding/encoding');
+
+var RE_ENCODED = /%([a-fA-F0-9]{2})/g;
+function encodedReplacer(match, byte) {
+  return String.fromCharCode(parseInt(byte, 16));
 }
-exports.normalizedFunctionString = normalizedFunctionString;
-function isReactNative() {
-    var g = global_1.getGlobal();
-    return typeof g.navigator === 'object' && g.navigator.product === 'ReactNative';
-}
-var insecureRandomBytes = function insecureRandomBytes(size) {
-    var insecureWarning = isReactNative()
-        ? 'BSON: For React Native please polyfill crypto.getRandomValues, e.g. using: https://www.npmjs.com/package/react-native-get-random-values.'
-        : 'BSON: No cryptographic implementation for random bytes present, falling back to a less secure implementation.';
-    console.warn(insecureWarning);
-    var result = buffer_1.Buffer.alloc(size);
-    for (var i = 0; i < size; ++i)
-        result[i] = Math.floor(Math.random() * 256);
-    return result;
-};
-var detectRandomBytes = function () {
-    if (typeof window !== 'undefined') {
-        // browser crypto implementation(s)
-        var target_1 = window.crypto || window.msCrypto; // allow for IE11
-        if (target_1 && target_1.getRandomValues) {
-            return function (size) { return target_1.getRandomValues(buffer_1.Buffer.alloc(size)); };
+function parseParams(str) {
+  var res = [],
+      state = 'key',
+      charset = '',
+      inquote = false,
+      escaping = false,
+      p = 0,
+      tmp = '';
+
+  for (var i = 0, len = str.length; i < len; ++i) {
+    if (str[i] === '\\' && inquote) {
+      if (escaping)
+        escaping = false;
+      else {
+        escaping = true;
+        continue;
+      }
+    } else if (str[i] === '"') {
+      if (!escaping) {
+        if (inquote) {
+          inquote = false;
+          state = 'key';
+        } else
+          inquote = true;
+        continue;
+      } else
+        escaping = false;
+    } else {
+      if (escaping && inquote)
+        tmp += '\\';
+      escaping = false;
+      if ((state === 'charset' || state === 'lang') && str[i] === "'") {
+        if (state === 'charset') {
+          state = 'lang';
+          charset = tmp.substring(1);
+        } else
+          state = 'value';
+        tmp = '';
+        continue;
+      } else if (state === 'key'
+                 && (str[i] === '*' || str[i] === '=')
+                 && res.length) {
+        if (str[i] === '*')
+          state = 'charset';
+        else
+          state = 'value';
+        res[p] = [tmp, undefined];
+        tmp = '';
+        continue;
+      } else if (!inquote && str[i] === ';') {
+        state = 'key';
+        if (charset) {
+          if (tmp.length) {
+            tmp = decodeText(tmp.replace(RE_ENCODED, encodedReplacer),
+                             'binary',
+                             charset);
+          }
+          charset = '';
         }
+        if (res[p] === undefined)
+          res[p] = tmp;
+        else
+          res[p][1] = tmp;
+        tmp = '';
+        ++p;
+        continue;
+      } else if (!inquote && (str[i] === ' ' || str[i] === '\t'))
+        continue;
     }
-    if (typeof global !== 'undefined' && global.crypto && global.crypto.getRandomValues) {
-        // allow for RN packages such as https://www.npmjs.com/package/react-native-get-random-values to populate global
-        return function (size) { return global.crypto.getRandomValues(buffer_1.Buffer.alloc(size)); };
-    }
-    var requiredRandomBytes;
+    tmp += str[i];
+  }
+  if (charset && tmp.length) {
+    tmp = decodeText(tmp.replace(RE_ENCODED, encodedReplacer),
+                     'binary',
+                     charset);
+  }
+
+  if (res[p] === undefined) {
+    if (tmp)
+      res[p] = tmp;
+  } else
+    res[p][1] = tmp;
+
+  return res;
+};
+exports.parseParams = parseParams;
+
+
+function decodeText(text, textEncoding, destEncoding) {
+  var ret;
+  if (text && jsencoding.encodingExists(destEncoding)) {
     try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        requiredRandomBytes = require('crypto').randomBytes;
+      ret = jsencoding.TextDecoder(destEncoding)
+                      .decode(new Buffer(text, textEncoding));
+    } catch(e) {}
+  }
+  return (typeof ret === 'string' ? ret : text);
+}
+exports.decodeText = decodeText;
+
+
+var HEX = [
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0,
+  0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+], RE_PLUS = /\+/g;
+function Decoder() {
+  this.buffer = undefined;
+}
+Decoder.prototype.write = function(str) {
+  // Replace '+' with ' ' before decoding
+  str = str.replace(RE_PLUS, ' ');
+  var res = '';
+  var i = 0, p = 0, len = str.length;
+  for (; i < len; ++i) {
+    if (this.buffer !== undefined) {
+      if (!HEX[str.charCodeAt(i)]) {
+        res += '%' + this.buffer;
+        this.buffer = undefined;
+        --i; // retry character
+      } else {
+        this.buffer += str[i];
+        ++p;
+        if (this.buffer.length === 2) {
+          res += String.fromCharCode(parseInt(this.buffer, 16));
+          this.buffer = undefined;
+        }
+      }
+    } else if (str[i] === '%') {
+      if (i > p) {
+        res += str.substring(p, i);
+        p = i;
+      }
+      this.buffer = '';
+      ++p;
     }
-    catch (e) {
-        // keep the fallback
-    }
-    // NOTE: in transpiled cases the above require might return null/undefined
-    return requiredRandomBytes || insecureRandomBytes;
+  }
+  if (p < len && this.buffer === undefined)
+    res += str.substring(p);
+  return res;
 };
-exports.randomBytes = detectRandomBytes();
-function isAnyArrayBuffer(value) {
-    return ['[object ArrayBuffer]', '[object SharedArrayBuffer]'].includes(Object.prototype.toString.call(value));
+Decoder.prototype.reset = function() {
+  this.buffer = undefined;
+};
+exports.Decoder = Decoder;
+
+
+var RE_SPLIT_POSIX =
+      /^(\/?|)([\s\S]*?)((?:\.{1,2}|[^\/]+?|)(\.[^.\/]*|))(?:[\/]*)$/,
+    RE_SPLIT_DEVICE =
+      /^([a-zA-Z]:|[\\\/]{2}[^\\\/]+[\\\/]+[^\\\/]+)?([\\\/])?([\s\S]*?)$/,
+    RE_SPLIT_WINDOWS =
+      /^([\s\S]*?)((?:\.{1,2}|[^\\\/]+?|)(\.[^.\/\\]*|))(?:[\\\/]*)$/;
+function splitPathPosix(filename) {
+  return RE_SPLIT_POSIX.exec(filename).slice(1);
 }
-exports.isAnyArrayBuffer = isAnyArrayBuffer;
-function isUint8Array(value) {
-    return Object.prototype.toString.call(value) === '[object Uint8Array]';
+function splitPathWindows(filename) {
+  // Separate device+slash from tail
+  var result = RE_SPLIT_DEVICE.exec(filename),
+      device = (result[1] || '') + (result[2] || ''),
+      tail = result[3] || '';
+  // Split the tail into dir, basename and extension
+  var result2 = RE_SPLIT_WINDOWS.exec(tail),
+      dir = result2[1],
+      basename = result2[2],
+      ext = result2[3];
+  return [device, dir, basename, ext];
 }
-exports.isUint8Array = isUint8Array;
-function isBigInt64Array(value) {
-    return Object.prototype.toString.call(value) === '[object BigInt64Array]';
+function basename(path) {
+  var f = splitPathPosix(path)[2];
+  if (f === path)
+    f = splitPathWindows(path)[2];
+  return f;
 }
-exports.isBigInt64Array = isBigInt64Array;
-function isBigUInt64Array(value) {
-    return Object.prototype.toString.call(value) === '[object BigUint64Array]';
-}
-exports.isBigUInt64Array = isBigUInt64Array;
-function isRegExp(d) {
-    return Object.prototype.toString.call(d) === '[object RegExp]';
-}
-exports.isRegExp = isRegExp;
-function isMap(d) {
-    return Object.prototype.toString.call(d) === '[object Map]';
-}
-exports.isMap = isMap;
-/** Call to check if your environment has `Buffer` */
-function haveBuffer() {
-    return typeof global !== 'undefined' && typeof global.Buffer !== 'undefined';
-}
-exports.haveBuffer = haveBuffer;
-// To ensure that 0.4 of node works correctly
-function isDate(d) {
-    return isObjectLike(d) && Object.prototype.toString.call(d) === '[object Date]';
-}
-exports.isDate = isDate;
-/**
- * @internal
- * this is to solve the `'someKey' in x` problem where x is unknown.
- * https://github.com/typescript-eslint/typescript-eslint/issues/1071#issuecomment-541955753
- */
-function isObjectLike(candidate) {
-    return typeof candidate === 'object' && candidate !== null;
-}
-exports.isObjectLike = isObjectLike;
-function deprecate(fn, message) {
-    var warned = false;
-    function deprecated() {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
-        if (!warned) {
-            console.warn(message);
-            warned = true;
-        }
-        return fn.apply(this, args);
-    }
-    return deprecated;
-}
-exports.deprecate = deprecate;
-//# sourceMappingURL=utils.js.map
+exports.basename = basename;

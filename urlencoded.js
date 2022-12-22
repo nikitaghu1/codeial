@@ -1,284 +1,214 @@
-/*!
- * body-parser
- * Copyright(c) 2014 Jonathan Ong
- * Copyright(c) 2014-2015 Douglas Christopher Wilson
- * MIT Licensed
- */
+var Decoder = require('../utils').Decoder,
+    decodeText = require('../utils').decodeText;
 
-'use strict'
+var RE_CHARSET = /^charset$/i;
 
-/**
- * Module dependencies.
- * @private
- */
+UrlEncoded.detect = /^application\/x-www-form-urlencoded/i;
+function UrlEncoded(boy, cfg) {
+  if (!(this instanceof UrlEncoded))
+    return new UrlEncoded(boy, cfg);
+  var limits = cfg.limits,
+      headers = cfg.headers,
+      parsedConType = cfg.parsedConType;
+  this.boy = boy;
 
-var bytes = require('bytes')
-var contentType = require('content-type')
-var createError = require('http-errors')
-var debug = require('debug')('body-parser:urlencoded')
-var deprecate = require('depd')('body-parser')
-var read = require('../read')
-var typeis = require('type-is')
+  this.fieldSizeLimit = (limits && typeof limits.fieldSize === 'number'
+                         ? limits.fieldSize
+                         : 1 * 1024 * 1024);
+  this.fieldNameSizeLimit = (limits && typeof limits.fieldNameSize === 'number'
+                             ? limits.fieldNameSize
+                             : 100);
+  this.fieldsLimit = (limits && typeof limits.fields === 'number'
+                      ? limits.fields
+                      : Infinity);
 
-/**
- * Module exports.
- */
-
-module.exports = urlencoded
-
-/**
- * Cache of parser modules.
- */
-
-var parsers = Object.create(null)
-
-/**
- * Create a middleware to parse urlencoded bodies.
- *
- * @param {object} [options]
- * @return {function}
- * @public
- */
-
-function urlencoded (options) {
-  var opts = options || {}
-
-  // notice because option default will flip in next major
-  if (opts.extended === undefined) {
-    deprecate('undefined extended: provide extended option')
-  }
-
-  var extended = opts.extended !== false
-  var inflate = opts.inflate !== false
-  var limit = typeof opts.limit !== 'number'
-    ? bytes.parse(opts.limit || '100kb')
-    : opts.limit
-  var type = opts.type || 'application/x-www-form-urlencoded'
-  var verify = opts.verify || false
-
-  if (verify !== false && typeof verify !== 'function') {
-    throw new TypeError('option verify must be function')
-  }
-
-  // create the appropriate query parser
-  var queryparse = extended
-    ? extendedparser(opts)
-    : simpleparser(opts)
-
-  // create the appropriate type checking function
-  var shouldParse = typeof type !== 'function'
-    ? typeChecker(type)
-    : type
-
-  function parse (body) {
-    return body.length
-      ? queryparse(body)
-      : {}
-  }
-
-  return function urlencodedParser (req, res, next) {
-    if (req._body) {
-      debug('body already parsed')
-      next()
-      return
-    }
-
-    req.body = req.body || {}
-
-    // skip requests without bodies
-    if (!typeis.hasBody(req)) {
-      debug('skip empty body')
-      next()
-      return
-    }
-
-    debug('content-type %j', req.headers['content-type'])
-
-    // determine if request should be parsed
-    if (!shouldParse(req)) {
-      debug('skip parsing')
-      next()
-      return
-    }
-
-    // assert charset
-    var charset = getCharset(req) || 'utf-8'
-    if (charset !== 'utf-8') {
-      debug('invalid charset')
-      next(createError(415, 'unsupported charset "' + charset.toUpperCase() + '"', {
-        charset: charset,
-        type: 'charset.unsupported'
-      }))
-      return
-    }
-
-    // read
-    read(req, res, next, parse, debug, {
-      debug: debug,
-      encoding: charset,
-      inflate: inflate,
-      limit: limit,
-      verify: verify
-    })
-  }
-}
-
-/**
- * Get the extended query parser.
- *
- * @param {object} options
- */
-
-function extendedparser (options) {
-  var parameterLimit = options.parameterLimit !== undefined
-    ? options.parameterLimit
-    : 1000
-  var parse = parser('qs')
-
-  if (isNaN(parameterLimit) || parameterLimit < 1) {
-    throw new TypeError('option parameterLimit must be a positive number')
-  }
-
-  if (isFinite(parameterLimit)) {
-    parameterLimit = parameterLimit | 0
-  }
-
-  return function queryparse (body) {
-    var paramCount = parameterCount(body, parameterLimit)
-
-    if (paramCount === undefined) {
-      debug('too many parameters')
-      throw createError(413, 'too many parameters', {
-        type: 'parameters.too.many'
-      })
-    }
-
-    var arrayLimit = Math.max(100, paramCount)
-
-    debug('parse extended urlencoding')
-    return parse(body, {
-      allowPrototypes: true,
-      arrayLimit: arrayLimit,
-      depth: Infinity,
-      parameterLimit: parameterLimit
-    })
-  }
-}
-
-/**
- * Get the charset of a request.
- *
- * @param {object} req
- * @api private
- */
-
-function getCharset (req) {
-  try {
-    return (contentType.parse(req).parameters.charset || '').toLowerCase()
-  } catch (e) {
-    return undefined
-  }
-}
-
-/**
- * Count the number of parameters, stopping once limit reached
- *
- * @param {string} body
- * @param {number} limit
- * @api private
- */
-
-function parameterCount (body, limit) {
-  var count = 0
-  var index = 0
-
-  while ((index = body.indexOf('&', index)) !== -1) {
-    count++
-    index++
-
-    if (count === limit) {
-      return undefined
+  var charset;
+  for (var i = 0, len = parsedConType.length; i < len; ++i) {
+    if (Array.isArray(parsedConType[i])
+        && RE_CHARSET.test(parsedConType[i][0])) {
+      charset = parsedConType[i][1].toLowerCase();
+      break;
     }
   }
 
-  return count
+  if (charset === undefined)
+    charset = cfg.defCharset || 'utf8';
+
+  this.decoder = new Decoder();
+  this.charset = charset;
+  this._fields = 0;
+  this._state = 'key';
+  this._checkingBytes = true;
+  this._bytesKey = 0;
+  this._bytesVal = 0;
+  this._key = '';
+  this._val = '';
+  this._keyTrunc = false;
+  this._valTrunc = false;
+  this._hitlimit = false;
 }
 
-/**
- * Get parser for module name dynamically.
- *
- * @param {string} name
- * @return {function}
- * @api private
- */
-
-function parser (name) {
-  var mod = parsers[name]
-
-  if (mod !== undefined) {
-    return mod.parse
-  }
-
-  // this uses a switch for static require analysis
-  switch (name) {
-    case 'qs':
-      mod = require('qs')
-      break
-    case 'querystring':
-      mod = require('querystring')
-      break
-  }
-
-  // store to prevent invoking require()
-  parsers[name] = mod
-
-  return mod.parse
-}
-
-/**
- * Get the simple query parser.
- *
- * @param {object} options
- */
-
-function simpleparser (options) {
-  var parameterLimit = options.parameterLimit !== undefined
-    ? options.parameterLimit
-    : 1000
-  var parse = parser('querystring')
-
-  if (isNaN(parameterLimit) || parameterLimit < 1) {
-    throw new TypeError('option parameterLimit must be a positive number')
-  }
-
-  if (isFinite(parameterLimit)) {
-    parameterLimit = parameterLimit | 0
-  }
-
-  return function queryparse (body) {
-    var paramCount = parameterCount(body, parameterLimit)
-
-    if (paramCount === undefined) {
-      debug('too many parameters')
-      throw createError(413, 'too many parameters', {
-        type: 'parameters.too.many'
-      })
+UrlEncoded.prototype.write = function(data, cb) {
+  if (this._fields === this.fieldsLimit) {
+    if (!this.boy.hitFieldsLimit) {
+      this.boy.hitFieldsLimit = true;
+      this.boy.emit('fieldsLimit');
     }
-
-    debug('parse urlencoding')
-    return parse(body, undefined, undefined, { maxKeys: parameterLimit })
+    return cb();
   }
-}
 
-/**
- * Get the simple type checker.
- *
- * @param {string} type
- * @return {function}
- */
+  var idxeq, idxamp, i, p = 0, len = data.length;
 
-function typeChecker (type) {
-  return function checkType (req) {
-    return Boolean(typeis(req, type))
+  while (p < len) {
+    if (this._state === 'key') {
+      idxeq = idxamp = undefined;
+      for (i = p; i < len; ++i) {
+        if (!this._checkingBytes)
+          ++p;
+        if (data[i] === 0x3D/*=*/) {
+          idxeq = i;
+          break;
+        } else if (data[i] === 0x26/*&*/) {
+          idxamp = i;
+          break;
+        }
+        if (this._checkingBytes && this._bytesKey === this.fieldNameSizeLimit) {
+          this._hitLimit = true;
+          break;
+        } else if (this._checkingBytes)
+          ++this._bytesKey;
+      }
+
+      if (idxeq !== undefined) {
+        // key with assignment
+        if (idxeq > p)
+          this._key += this.decoder.write(data.toString('binary', p, idxeq));
+        this._state = 'val';
+
+        this._hitLimit = false;
+        this._checkingBytes = true;
+        this._val = '';
+        this._bytesVal = 0;
+        this._valTrunc = false;
+        this.decoder.reset();
+
+        p = idxeq + 1;
+      } else if (idxamp !== undefined) {
+        // key with no assignment
+        ++this._fields;
+        var key, keyTrunc = this._keyTrunc;
+        if (idxamp > p)
+          key = (this._key += this.decoder.write(data.toString('binary', p, idxamp)));
+        else
+          key = this._key;
+
+        this._hitLimit = false;
+        this._checkingBytes = true;
+        this._key = '';
+        this._bytesKey = 0;
+        this._keyTrunc = false;
+        this.decoder.reset();
+
+        if (key.length) {
+          this.boy.emit('field', decodeText(key, 'binary', this.charset),
+                                 '',
+                                 keyTrunc,
+                                 false);
+        }
+
+        p = idxamp + 1;
+        if (this._fields === this.fieldsLimit)
+          return cb();
+      } else if (this._hitLimit) {
+        // we may not have hit the actual limit if there are encoded bytes...
+        if (i > p)
+          this._key += this.decoder.write(data.toString('binary', p, i));
+        p = i;
+        if ((this._bytesKey = this._key.length) === this.fieldNameSizeLimit) {
+          // yep, we actually did hit the limit
+          this._checkingBytes = false;
+          this._keyTrunc = true;
+        }
+      } else {
+        if (p < len)
+          this._key += this.decoder.write(data.toString('binary', p));
+        p = len;
+      }
+    } else {
+      idxamp = undefined;
+      for (i = p; i < len; ++i) {
+        if (!this._checkingBytes)
+          ++p;
+        if (data[i] === 0x26/*&*/) {
+          idxamp = i;
+          break;
+        }
+        if (this._checkingBytes && this._bytesVal === this.fieldSizeLimit) {
+          this._hitLimit = true;
+          break;
+        }
+        else if (this._checkingBytes)
+          ++this._bytesVal;
+      }
+
+      if (idxamp !== undefined) {
+        ++this._fields;
+        if (idxamp > p)
+          this._val += this.decoder.write(data.toString('binary', p, idxamp));
+        this.boy.emit('field', decodeText(this._key, 'binary', this.charset),
+                               decodeText(this._val, 'binary', this.charset),
+                               this._keyTrunc,
+                               this._valTrunc);
+        this._state = 'key';
+
+        this._hitLimit = false;
+        this._checkingBytes = true;
+        this._key = '';
+        this._bytesKey = 0;
+        this._keyTrunc = false;
+        this.decoder.reset();
+
+        p = idxamp + 1;
+        if (this._fields === this.fieldsLimit)
+          return cb();
+      } else if (this._hitLimit) {
+        // we may not have hit the actual limit if there are encoded bytes...
+        if (i > p)
+          this._val += this.decoder.write(data.toString('binary', p, i));
+        p = i;
+        if ((this._val === '' && this.fieldSizeLimit === 0)
+            || (this._bytesVal = this._val.length) === this.fieldSizeLimit) {
+          // yep, we actually did hit the limit
+          this._checkingBytes = false;
+          this._valTrunc = true;
+        }
+      } else {
+        if (p < len)
+          this._val += this.decoder.write(data.toString('binary', p));
+        p = len;
+      }
+    }
   }
-}
+  cb();
+};
+
+UrlEncoded.prototype.end = function() {
+  if (this.boy._done)
+    return;
+
+  if (this._state === 'key' && this._key.length > 0) {
+    this.boy.emit('field', decodeText(this._key, 'binary', this.charset),
+                           '',
+                           this._keyTrunc,
+                           false);
+  } else if (this._state === 'val') {
+    this.boy.emit('field', decodeText(this._key, 'binary', this.charset),
+                           decodeText(this._val, 'binary', this.charset),
+                           this._keyTrunc,
+                           this._valTrunc);
+  }
+  this.boy._done = true;
+  this.boy.emit('finish');
+};
+
+module.exports = UrlEncoded;

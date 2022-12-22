@@ -1,47 +1,25 @@
 {
-  "name": "brace-expansion",
-  "description": "Brace expansion as known from sh/bash",
-  "version": "1.1.11",
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/juliangruber/brace-expansion.git"
+  "name" : "isarray",
+  "description" : "Array#isArray for older browsers",
+  "version" : "0.0.1",
+  "repository" : {
+    "type" : "git",
+    "url" : "git://github.com/juliangruber/isarray.git"
   },
-  "homepage": "https://github.com/juliangruber/brace-expansion",
-  "main": "index.js",
-  "scripts": {
-    "test": "tape test/*.js",
-    "gentest": "bash test/generate.sh",
-    "bench": "matcha test/perf/bench.js"
+  "homepage": "https://github.com/juliangruber/isarray",
+  "main" : "index.js",
+  "scripts" : {
+    "test" : "tap test/*.js"
   },
-  "dependencies": {
-    "balanced-match": "^1.0.0",
-    "concat-map": "0.0.1"
+  "dependencies" : {},
+  "devDependencies" : {
+    "tap" : "*"
   },
-  "devDependencies": {
-    "matcha": "^0.7.0",
-    "tape": "^4.6.0"
-  },
-  "keywords": [],
+  "keywords": ["browser","isarray","array"],
   "author": {
     "name": "Julian Gruber",
     "email": "mail@juliangruber.com",
     "url": "http://juliangruber.com"
   },
-  "license": "MIT",
-  "testling": {
-    "files": "test/*.js",
-    "browsers": [
-      "ie/8..latest",
-      "firefox/20..latest",
-      "firefox/nightly",
-      "chrome/25..latest",
-      "chrome/canary",
-      "opera/12..latest",
-      "opera/next",
-      "safari/5.1..latest",
-      "ipad/6.0..latest",
-      "iphone/6.0..latest",
-      "android-browser/4.2..latest"
-    ]
-  }
+  "license": "MIT"
 }
