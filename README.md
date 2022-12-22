@@ -1,150 +1,121 @@
-# assert-plus
+# brace-expansion
 
-This library is a super small wrapper over node's assert module that has two
-things: (1) the ability to disable assertions with the environment variable
-NODE\_NDEBUG, and (2) some API wrappers for argument testing.  Like
-`assert.string(myArg, 'myArg')`.  As a simple example, most of my code looks
-like this:
+[Brace expansion](https://www.gnu.org/software/bash/manual/html_node/Brace-Expansion.html), 
+as known from sh/bash, in JavaScript.
 
-```javascript
-    var assert = require('assert-plus');
+[![build status](https://secure.travis-ci.org/juliangruber/brace-expansion.svg)](http://travis-ci.org/juliangruber/brace-expansion)
+[![downloads](https://img.shields.io/npm/dm/brace-expansion.svg)](https://www.npmjs.org/package/brace-expansion)
+[![Greenkeeper badge](https://badges.greenkeeper.io/juliangruber/brace-expansion.svg)](https://greenkeeper.io/)
 
-    function fooAccount(options, callback) {
-        assert.object(options, 'options');
-        assert.number(options.id, 'options.id');
-        assert.bool(options.isManager, 'options.isManager');
-        assert.string(options.name, 'options.name');
-        assert.arrayOfString(options.email, 'options.email');
-        assert.func(callback, 'callback');
+[![testling badge](https://ci.testling.com/juliangruber/brace-expansion.png)](https://ci.testling.com/juliangruber/brace-expansion)
 
-        // Do stuff
-        callback(null, {});
-    }
+## Example
+
+```js
+var expand = require('brace-expansion');
+
+expand('file-{a,b,c}.jpg')
+// => ['file-a.jpg', 'file-b.jpg', 'file-c.jpg']
+
+expand('-v{,,}')
+// => ['-v', '-v', '-v']
+
+expand('file{0..2}.jpg')
+// => ['file0.jpg', 'file1.jpg', 'file2.jpg']
+
+expand('file-{a..c}.jpg')
+// => ['file-a.jpg', 'file-b.jpg', 'file-c.jpg']
+
+expand('file{2..0}.jpg')
+// => ['file2.jpg', 'file1.jpg', 'file0.jpg']
+
+expand('file{0..4..2}.jpg')
+// => ['file0.jpg', 'file2.jpg', 'file4.jpg']
+
+expand('file-{a..e..2}.jpg')
+// => ['file-a.jpg', 'file-c.jpg', 'file-e.jpg']
+
+expand('file{00..10..5}.jpg')
+// => ['file00.jpg', 'file05.jpg', 'file10.jpg']
+
+expand('{{A..C},{a..c}}')
+// => ['A', 'B', 'C', 'a', 'b', 'c']
+
+expand('ppp{,config,oe{,conf}}')
+// => ['ppp', 'pppconfig', 'pppoe', 'pppoeconf']
 ```
 
-# API
+## API
 
-All methods that *aren't* part of node's core assert API are simply assumed to
-take an argument, and then a string 'name' that's not a message; `AssertionError`
-will be thrown if the assertion fails with a message like:
-
-    AssertionError: foo (string) is required
-    at test (/home/mark/work/foo/foo.js:3:9)
-    at Object.<anonymous> (/home/mark/work/foo/foo.js:15:1)
-    at Module._compile (module.js:446:26)
-    at Object..js (module.js:464:10)
-    at Module.load (module.js:353:31)
-    at Function._load (module.js:311:12)
-    at Array.0 (module.js:484:10)
-    at EventEmitter._tickCallback (node.js:190:38)
-
-from:
-
-```javascript
-    function test(foo) {
-        assert.string(foo, 'foo');
-    }
+```js
+var expand = require('brace-expansion');
 ```
 
-There you go.  You can check that arrays are of a homogeneous type with `Arrayof$Type`:
+### var expanded = expand(str)
 
-```javascript
-    function test(foo) {
-        assert.arrayOfString(foo, 'foo');
-    }
+Return an array of all possible and valid expansions of `str`. If none are
+found, `[str]` is returned.
+
+Valid expansions are:
+
+```js
+/^(.*,)+(.+)?$/
+// {a,b,...}
 ```
 
-You can assert IFF an argument is not `undefined` (i.e., an optional arg):
+A comma separated list of options, like `{a,b}` or `{a,{b,c}}` or `{,a,}`.
 
-```javascript
-    assert.optionalString(foo, 'foo');
+```js
+/^-?\d+\.\.-?\d+(\.\.-?\d+)?$/
+// {x..y[..incr]}
 ```
 
-Lastly, you can opt-out of assertion checking altogether by setting the
-environment variable `NODE_NDEBUG=1`.  This is pseudo-useful if you have
-lots of assertions, and don't want to pay `typeof ()` taxes to v8 in
-production.  Be advised:  The standard functions re-exported from `assert` are
-also disabled in assert-plus if NDEBUG is specified.  Using them directly from
-the `assert` module avoids this behavior.
+A numeric sequence from `x` to `y` inclusive, with optional increment.
+If `x` or `y` start with a leading `0`, all the numbers will be padded
+to have equal length. Negative numbers and backwards iteration work too.
 
-The complete list of APIs is:
+```js
+/^-?\d+\.\.-?\d+(\.\.-?\d+)?$/
+// {x..y[..incr]}
+```
 
-* assert.array
-* assert.bool
-* assert.buffer
-* assert.func
-* assert.number
-* assert.finite
-* assert.object
-* assert.string
-* assert.stream
-* assert.date
-* assert.regexp
-* assert.uuid
-* assert.arrayOfArray
-* assert.arrayOfBool
-* assert.arrayOfBuffer
-* assert.arrayOfFunc
-* assert.arrayOfNumber
-* assert.arrayOfFinite
-* assert.arrayOfObject
-* assert.arrayOfString
-* assert.arrayOfStream
-* assert.arrayOfDate
-* assert.arrayOfRegexp
-* assert.arrayOfUuid
-* assert.optionalArray
-* assert.optionalBool
-* assert.optionalBuffer
-* assert.optionalFunc
-* assert.optionalNumber
-* assert.optionalFinite
-* assert.optionalObject
-* assert.optionalString
-* assert.optionalStream
-* assert.optionalDate
-* assert.optionalRegexp
-* assert.optionalUuid
-* assert.optionalArrayOfArray
-* assert.optionalArrayOfBool
-* assert.optionalArrayOfBuffer
-* assert.optionalArrayOfFunc
-* assert.optionalArrayOfNumber
-* assert.optionalArrayOfFinite
-* assert.optionalArrayOfObject
-* assert.optionalArrayOfString
-* assert.optionalArrayOfStream
-* assert.optionalArrayOfDate
-* assert.optionalArrayOfRegexp
-* assert.optionalArrayOfUuid
-* assert.AssertionError
-* assert.fail
-* assert.ok
-* assert.equal
-* assert.notEqual
-* assert.deepEqual
-* assert.notDeepEqual
-* assert.strictEqual
-* assert.notStrictEqual
-* assert.throws
-* assert.doesNotThrow
-* assert.ifError
+An alphabetic sequence from `x` to `y` inclusive, with optional increment.
+`x` and `y` must be exactly one character, and if given, `incr` must be a
+number.
 
-# Installation
+For compatibility reasons, the string `${` is not eligible for brace expansion.
 
-    npm install assert-plus
+## Installation
+
+With [npm](https://npmjs.org) do:
+
+```bash
+npm install brace-expansion
+```
+
+## Contributors
+
+- [Julian Gruber](https://github.com/juliangruber)
+- [Isaac Z. Schlueter](https://github.com/isaacs)
+
+## Sponsors
+
+This module is proudly supported by my [Sponsors](https://github.com/juliangruber/sponsors)!
+
+Do you want to support modules like this to improve their quality, stability and weigh in on new features? Then please consider donating to my [Patreon](https://www.patreon.com/juliangruber). Not sure how much of my modules you're using? Try [feross/thanks](https://github.com/feross/thanks)!
 
 ## License
 
-The MIT License (MIT)
-Copyright (c) 2012 Mark Cavage
+(MIT)
+
+Copyright (c) 2013 Julian Gruber &lt;julian@juliangruber.com&gt;
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
 the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software is furnished to do so,
-subject to the following conditions:
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
@@ -156,7 +127,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-## Bugs
-
-See <https://github.com/mcavage/node-assert-plus/issues>.
