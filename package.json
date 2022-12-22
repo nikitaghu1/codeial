@@ -1,25 +1,25 @@
 {
-  "name" : "isarray",
-  "description" : "Array#isArray for older browsers",
-  "version" : "0.0.1",
-  "repository" : {
-    "type" : "git",
-    "url" : "git://github.com/juliangruber/isarray.git"
+  "author": "Felix Geisendörfer <felix@debuggable.com> (http://debuggable.com/)",
+  "name": "combined-stream",
+  "description": "A stream that emits multiple other streams one after another.",
+  "version": "1.0.8",
+  "homepage": "https://github.com/felixge/node-combined-stream",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/felixge/node-combined-stream.git"
   },
-  "homepage": "https://github.com/juliangruber/isarray",
-  "main" : "index.js",
-  "scripts" : {
-    "test" : "tap test/*.js"
+  "main": "./lib/combined_stream",
+  "scripts": {
+    "test": "node test/run.js"
   },
-  "dependencies" : {},
-  "devDependencies" : {
-    "tap" : "*"
+  "engines": {
+    "node": ">= 0.8"
   },
-  "keywords": ["browser","isarray","array"],
-  "author": {
-    "name": "Julian Gruber",
-    "email": "mail@juliangruber.com",
-    "url": "http://juliangruber.com"
+  "dependencies": {
+    "delayed-stream": "~1.0.0"
+  },
+  "devDependencies": {
+    "far": "~0.0.7"
   },
   "license": "MIT"
 }
