@@ -1,0 +1,47 @@
+
+<link rel="stylesheet" href="/css/user.css">
+<link rel="stylesheet" href="/css/home.css">
+
+<body>
+      <h1> <%=title%> </h1>   
+</body>
+
+<div id="home-container">
+<section id="feed-posts"> 
+      <h3>Posts</h3>
+      <% if(locals.user){ %>
+            <form action="/post/create" id="new-post-form" method="POST" enctype="multipart/form-data">
+                  <textarea cols="30" rows="4" placeholder="Type here...." name="post_data"></textarea>
+                  <input type="file" name="post_img" placeholder="Post your Image here">
+                  <input type="submit" value="post">
+            </form>
+      <%}  %>
+
+      <div id="post-list-container">
+            <ul>
+            <% for(post of posts){ %>
+                  <%- include('_post') -%>
+           <% } %>
+        
+            </ul>
+      </div>
+
+</section>
+
+
+
+
+
+<section id="friends-container">
+      <h4>Friends</h4>
+<%for(u of all_users){%>
+<p>
+      <a href="/user/profile/<%=u.id%>"> <%= u.name %> </a>
+</p>
+
+<%}%>
+</section>
+</div>
+
+<script src="/js/home_post.js"></script>
+<script src="/js/home_comment.js"></script>

@@ -1,0 +1,22 @@
+footer{
+    margin-top: 60%;
+    height:10vh;
+    background-color: darkgrey;
+    #foot{
+        display: flex;
+
+        .links{
+            margin-left: 2%;
+            margin-top: 1%;
+            a{
+            text-decoration: none;
+            color: black;
+            }
+        }
+
+        i{
+            margin-top: 6%;
+            padding:2%;
+        }
+    }
+}

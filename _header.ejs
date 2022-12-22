@@ -1,0 +1,22 @@
+<head>
+
+</head>
+
+<header>
+    codeial
+</header>
+
+<% if(locals.user){ %>
+  <p id="user-name"><%=user.name%></p>
+  <a href="/user/sign_out">Sign out</a>
+
+  <% }else{ %>
+    <div id="sign-in-out">
+    <a href="/user/sign_in">Sign in</a>
+    <a href="/user/sign_up">Sign Up</a>
+    </div>
+
+
+  <%}  %>
+
+

@@ -1,0 +1,15 @@
+footer {
+  margin-top: 60%;
+  height: 10vh;
+  background-color: darkgrey; }
+  footer #foot {
+    display: flex; }
+    footer #foot .links {
+      margin-left: 2%;
+      margin-top: 1%; }
+      footer #foot .links a {
+        text-decoration: none;
+        color: black; }
+    footer #foot i {
+      margin-top: 6%;
+      padding: 2%; }
